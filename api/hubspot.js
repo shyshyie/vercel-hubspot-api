@@ -1,37 +1,30 @@
-// api/hubspot.js
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Only POST requests allowed" });
+  if (req.method !== "GET") {
+    return res.status(405).json({ message: "Only GET requests allowed" });
   }
 
+  const HUBSPOT_TOKEN = process.env.HUBSPOT_API_KEY;
+
   try {
-    // Example: receive form data from Webflow
-    const { email, firstName, lastName } = req.body;
-
-    // Replace this with your actual HubSpot API key or token
-    const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
-
-    // Example of sending data to HubSpot
-    const response = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${HUBSPOT_API_KEY}`,
-      },
-      body: JSON.stringify({
-        properties: {
-          email,
-          firstname: firstName,
-          lastname: lastName,
+    // Fetch contacts from HubSpot
+    const response = await fetch(
+      "https://api.hubapi.com/crm/v3/objects/contacts?limit=1",
+      {
+        headers: {
+          Authorization: `Bearer ${HUBSPOT_TOKEN}`,
+          "Content-Type": "application/json",
         },
-      }),
-    });
+      }
+    );
 
     const data = await response.json();
-    res.status(200).json({ message: "Contact created!", data });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error creating contact", error });
+
+    // HubSpot API returns total results in paging info
+    const total = data.paging?.total || 0;
+
+    res.status(200).json({ count: total });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ count: 0, error: err.message });
   }
 }
