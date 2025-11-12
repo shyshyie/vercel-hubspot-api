@@ -1,28 +1,40 @@
+// api/hubspot.js
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ message: "Only GET requests allowed" });
-  }
-
   const HUBSPOT_TOKEN = process.env.HUBSPOT_API_KEY;
+  const FORM_ID = "YOUR_FORM_ID"; // replace with your HubSpot form ID
+
+  let allSubmissions = [];
+  let offset = 0;
+  const limit = 100; // HubSpot max per request
 
   try {
-    // Fetch contacts from HubSpot
-    const response = await fetch(
-      "https://api.hubapi.com/crm/v3/objects/contacts?limit=1",
-      {
-        headers: {
-          Authorization: `Bearer ${HUBSPOT_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    while (true) {
+      const response = await fetch(
+        `https://api.hubapi.com/form-integrations/v1/submissions/forms/${FORM_ID}?limit=${limit}&offset=${offset}`,
+        {
+          headers: {
+            Authorization: `Bearer ${HUBSPOT_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    const data = await response.json();
+      const data = await response.json();
 
-    // HubSpot API returns total results in paging info
-    const total = data.paging?.total || 0;
+      if (!data.results || data.results.length === 0) break;
 
-    res.status(200).json({ count: total });
+      allSubmissions = allSubmissions.concat(data.results);
+
+      // Stop if fewer than limit results returned
+      if (data.results.length < limit) break;
+
+      offset += limit;
+    }
+
+    res.status(200).json({
+      count: allSubmissions.length,
+      submissions: allSubmissions, // full submission data
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ count: 0, error: err.message });
