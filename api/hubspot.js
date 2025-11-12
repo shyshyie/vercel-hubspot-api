@@ -1,11 +1,12 @@
-// api/hubspot.js
+import fetch from "node-fetch"; // add this at the top
+
 export default async function handler(req, res) {
   const HUBSPOT_TOKEN = process.env.HUBSPOT_API_KEY;
   const FORM_ID = "YOUR_FORM_ID"; // replace with your HubSpot form ID
 
   let allSubmissions = [];
   let offset = 0;
-  const limit = 100; // HubSpot max per request
+  const limit = 100;
 
   try {
     while (true) {
@@ -25,7 +26,6 @@ export default async function handler(req, res) {
 
       allSubmissions = allSubmissions.concat(data.results);
 
-      // Stop if fewer than limit results returned
       if (data.results.length < limit) break;
 
       offset += limit;
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       count: allSubmissions.length,
-      submissions: allSubmissions, // full submission data
+      submissions: allSubmissions,
     });
   } catch (err) {
     console.error(err);
